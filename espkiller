@@ -1,11 +1,11 @@
 --// Servicios
 local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
-local UIS = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
---// Variables
+--// Variables ESP
 local espEnabled = false
 local espBox = nil
 
@@ -16,7 +16,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 --// Frame principal
-local main = Instance.new("Frame", gui)
+local main = Instance.new("Frame")
 main.Size = UDim2.fromOffset(220, 120)
 main.Position = UDim2.fromScale(0.5, 0.5)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -24,12 +24,12 @@ main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 main.BackgroundTransparency = 0.15
 main.BorderSizePixel = 0
 main.Active = true
+main.Parent = gui
 
---// Bordes redondos
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 20)
 
 --// Título
-local title = Instance.new("TextLabel", main)
+local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 30)
 title.Position = UDim2.fromOffset(10, 10)
 title.Text = "ESP HUB"
@@ -38,22 +38,28 @@ title.TextSize = 16
 title.TextColor3 = Color3.fromRGB(20, 20, 20)
 title.BackgroundTransparency = 1
 title.TextXAlignment = Left
+title.Parent = main
 
 --// Botón
-local button = Instance.new("TextButton", main)
+local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -40, 0, 45)
 button.Position = UDim2.fromOffset(20, 55)
 button.Text = "ESP Killer"
 button.Font = Enum.Font.GothamBold
 button.TextSize = 14
-button.TextColor3 = Color3.fromRGB(0, 0, 0) -- NEGRO
+button.TextColor3 = Color3.fromRGB(0, 0, 0)
 button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 button.BorderSizePixel = 0
+button.Parent = main
+
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 14)
 
---// DRAG PC + MÓVIL
+--// DRAG PC + MÓVIL (CORRECTO)
 do
-	local dragging, dragStart, startPos
+	local dragging = false
+	local dragInput
+	local dragStart
+	local startPos
 
 	local function update(input)
 		local delta = input.Position - dragStart
@@ -71,26 +77,24 @@ do
 			dragging = true
 			dragStart = input.Position
 			startPos = main.Position
-
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
-			end)
+			dragInput = input
 		end
 	end)
 
-	main.InputChanged:Connect(function(input)
-		if dragging and (
-			input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch
-		) then
+	main.InputEnded:Connect(function(input)
+		if input == dragInput then
+			dragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input == dragInput then
 			update(input)
 		end
 	end)
 end
 
---// Obtener jugador Killer
+--// Obtener Killer
 local function getKillerCharacter()
 	local killerTeam = Teams:FindFirstChild("Killer")
 	if not killerTeam then return nil end
@@ -100,7 +104,6 @@ local function getKillerCharacter()
 			return plr.Character
 		end
 	end
-	return nil
 end
 
 --// ESP
@@ -108,8 +111,8 @@ local function toggleESP()
 	espEnabled = not espEnabled
 
 	button.BackgroundColor3 = espEnabled
-		and Color3.fromRGB(60, 200, 80) -- Verde
-		or Color3.fromRGB(200, 50, 50) -- Rojo
+		and Color3.fromRGB(60, 200, 80)
+		or Color3.fromRGB(200, 50, 50)
 
 	if espBox then
 		espBox:Destroy()
@@ -134,7 +137,7 @@ local function toggleESP()
 					espBox.Parent = hrp
 				end
 			end
-			task.wait(0.5)
+			task.wait(0.3)
 		end
 	end)
 end
