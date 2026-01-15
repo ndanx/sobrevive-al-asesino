@@ -1,0 +1,139 @@
+local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local pGui = player:WaitForChild("PlayerGui")
+
+-- 1. LIMPIEZA
+if pGui:FindFirstChild("MasterHub_Final") then
+	pGui.MasterHub_Final:Destroy()
+end
+
+-- 2. CREACIÓN DEL HUB
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MasterHub_Final"
+screenGui.ResetOnSpawn = false  
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = pGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 180, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -90, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.Active = true
+mainFrame.Parent = screenGui
+
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = mainFrame
+layout.Padding = UDim.new(0, 8)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- 3. CREACIÓN DE BOTONES
+local function createBtn(name, defaultText)
+	local btn = Instance.new("TextButton")
+	btn.Name = name
+	btn.Size = UDim2.new(0.85, 0, 0, 35)
+	btn.Font = Enum.Font.GothamBold
+	btn.Text = defaultText
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.TextSize = 13
+	btn.AutoButtonColor = true
+	btn.Parent = mainFrame
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+	return btn
+end
+
+local killerBtn = createBtn("1_Killer", "Esp Killer")
+killerBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+
+local survivorBtn = createBtn("2_Survivor", "Esp Survivor")
+survivorBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+
+local speedBtn = createBtn("3_Speed", "Speed")
+speedBtn.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+
+-- 4. MOVIMIENTO (DRAG)
+local dragging, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- 5. VARIABLES DE ESTADO Y LÓGICA
+local states = {
+	killer = false,
+	survivor = false,
+	speed = false
+}
+
+-- Bucle de Funciones
+RunService.RenderStepped:Connect(function()
+	-- ESP
+	for _, p in pairs(Players:GetPlayers()) do
+		if p == player then continue end
+		local char = p.Character
+		if char then
+			local old = char:FindFirstChild("ESPMark")
+			local color = nil
+			if p.Team then
+				if states.killer and p.Team.Name == "Killer" then color = Color3.fromRGB(255, 0, 0)
+				elseif states.survivor and p.Team.Name == "Survivor" then color = Color3.fromRGB(0, 255, 255) end
+			end
+			if color then
+				if not old then
+					local h = Instance.new("Highlight", char)
+					h.Name = "ESPMark"
+					h.FillColor = color
+				else old.FillColor = color end
+			elseif old then old:Destroy() end
+		end
+	end
+	
+	-- Speed
+	if player.Character and player.Character:FindFirstChild("Humanoid") then
+		player.Character.Humanoid.WalkSpeed = states.speed and (16 * 1.2) or 16
+	end
+end)
+
+-- EVENTOS DE CLICK
+killerBtn.MouseButton1Down:Connect(function()
+	states.killer = not states.killer
+	killerBtn.Text = states.killer and "Killer: On" or "Esp Killer"
+	killerBtn.BackgroundColor3 = states.killer and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+end)
+
+survivorBtn.MouseButton1Down:Connect(function()
+	states.survivor = not states.survivor
+	survivorBtn.Text = states.survivor and "Survivor: On" or "Esp Survivor"
+	survivorBtn.BackgroundColor3 = states.survivor and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
+end)
+
+speedBtn.MouseButton1Down:Connect(function()
+	states.speed = not states.speed
+	speedBtn.BackgroundColor3 = states.speed and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
+    -- El texto de Speed se queda igual según pediste
+end)
