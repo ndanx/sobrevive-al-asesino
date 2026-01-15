@@ -6,12 +6,12 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
 
--- 1. LIMPIEZA
+-- 1. LIMPIEZA TOTAL
 if pGui:FindFirstChild("MasterHub_Final") then
 	pGui.MasterHub_Final:Destroy()
 end
 
--- 2. CREACIÓN DEL HUB (Inmortal)
+-- 2. CREACIÓN DEL HUB
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MasterHub_Final"
 screenGui.ResetOnSpawn = false  
@@ -20,7 +20,9 @@ screenGui.Parent = pGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 180, 0, 200) -- Aumentamos altura para 3 botones
+-- Usamos AutomaticSize para que el fondo crezca solo
+mainFrame.AutomaticSize = Enum.AutomaticSize.Y 
+mainFrame.Size = UDim2.new(0, 180, 0, 0) 
 mainFrame.Position = UDim2.new(0.5, -90, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 mainFrame.BackgroundTransparency = 0.2
@@ -29,19 +31,23 @@ mainFrame.Parent = screenGui
 
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
 
+-- Padding interno para que los botones no toquen los bordes
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 15)
+padding.PaddingBottom = UDim.new(0, 15)
+padding.Parent = mainFrame
+
 local layout = Instance.new("UIListLayout")
 layout.Parent = mainFrame
 layout.Padding = UDim.new(0, 10)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- 3. FUNCIÓN PARA CREAR BOTONES
-local function createButton(name, text, color, order)
+local function createButton(text, color, order)
 	local btn = Instance.new("TextButton")
-	btn.Name = name
 	btn.LayoutOrder = order
-	btn.Size = UDim2.new(0.85, 0, 0, 35)
+	btn.Size = UDim2.new(0.85, 0, 0, 38)
 	btn.BackgroundColor3 = color
 	btn.Text = text
 	btn.Font = Enum.Font.GothamBold
@@ -52,9 +58,9 @@ local function createButton(name, text, color, order)
 	return btn
 end
 
-local killerBtn = createButton("KillerBtn", "Esp Killer", Color3.fromRGB(200, 50, 50), 1)
-local survivorBtn = createButton("SurvivorBtn", "Esp Survivor", Color3.fromRGB(50, 150, 200), 2)
-local speedBtn = createButton("SpeedBtn", "Speed", Color3.fromRGB(150, 150, 150), 3)
+local killerBtn = createButton("Esp Killer", Color3.fromRGB(200, 50, 50), 1)
+local survivorBtn = createButton("Esp Survivor", Color3.fromRGB(50, 150, 200), 2)
+local speedBtn = createButton("Speed (20%)", Color3.fromRGB(100, 100, 100), 3)
 
 -- 4. MOVIMIENTO (DRAG)
 local dragging, dragStart, startPos
@@ -77,15 +83,13 @@ UserInputService.InputEnded:Connect(function(input)
 	dragging = false
 end)
 
--- 5. LÓGICA ESP Y SPEED
+-- 5. LÓGICA
 local killerEsp = false
 local survivorEsp = false
 local speedActive = false
-local NORMAL_SPEED = 16
-local BOOST_SPEED = 16 * 1.2 -- 20% más
 
-local function updateFunctions()
-	-- Lógica ESP
+RunService.RenderStepped:Connect(function()
+	-- ESP
 	for _, p in pairs(Players:GetPlayers()) do
 		if p == player then continue end
 		local char = p.Character
@@ -93,57 +97,37 @@ local function updateFunctions()
 			local old = char:FindFirstChild("ESPMark")
 			local color = nil
 			if p.Team then
-				if killerEsp and p.Team.Name == "Killer" then
-					color = Color3.fromRGB(255, 0, 0)
-				elseif survivorEsp and p.Team.Name == "Survivor" then
-					color = Color3.fromRGB(0, 255, 255)
-				end
+				if killerEsp and p.Team.Name == "Killer" then color = Color3.fromRGB(255, 0, 0)
+				elseif survivorEsp and p.Team.Name == "Survivor" then color = Color3.fromRGB(0, 255, 255) end
 			end
 			if color then
 				if not old then
-					local h = Instance.new("Highlight")
+					local h = Instance.new("Highlight", char)
 					h.Name = "ESPMark"
 					h.FillColor = color
-					h.OutlineColor = Color3.new(1, 1, 1)
-					h.FillTransparency = 0.5
-					h.Parent = char
-				else
-					old.FillColor = color
-				end
-			elseif old then
-				old:Destroy()
-			end
+				else old.FillColor = color end
+			elseif old then old:Destroy() end
 		end
 	end
-
-	-- Lógica Speed (Se aplica cada frame por si el juego intenta resetearla)
-	local character = player.Character
-	if character and character:FindFirstChild("Humanoid") then
-		if speedActive then
-			character.Humanoid.WalkSpeed = BOOST_SPEED
-		else
-			character.Humanoid.WalkSpeed = NORMAL_SPEED
-		end
+	
+	-- SPEED
+	if player.Character and player.Character:FindFirstChild("Humanoid") then
+		player.Character.Humanoid.WalkSpeed = speedActive and 16 * 1.2 or 16
 	end
-end
+end)
 
--- EVENTOS DE BOTONES
+-- CLICK EVENTS
 killerBtn.MouseButton1Click:Connect(function()
 	killerEsp = not killerEsp
 	killerBtn.BackgroundColor3 = killerEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-	killerBtn.Text = killerEsp and "KILLER: ON" or "Esp Killer"
 end)
 
 survivorBtn.MouseButton1Click:Connect(function()
 	survivorEsp = not survivorEsp
 	survivorBtn.BackgroundColor3 = survivorEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
-	survivorBtn.Text = survivorEsp and "SURVIVOR: ON" or "Esp Survivor"
 end)
 
 speedBtn.MouseButton1Click:Connect(function()
 	speedActive = not speedActive
-	speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(150, 150, 150)
-	speedBtn.Text = speedActive and "SPEED: ON" or "Speed"
+	speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(100, 100, 100)
 end)
-
-RunService.RenderStepped:Connect(updateFunctions)
