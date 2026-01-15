@@ -134,7 +134,7 @@ end)
 
 speedBtn.MouseButton1Down:Connect(function()
 	states.speed = not states.speed
-    survivorBtn.Text = states.speed and "Speed: On" or "Speed"
+    speedBtn.Text = states.speed and "Speed: On" or "Speed"
 	speedBtn.BackgroundColor3 = states.speed and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
     
 end)
