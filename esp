@@ -103,7 +103,7 @@ RunService.RenderStepped:Connect(function()
     
     -- Speed
     if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = speedActive and (16 * 1.8) or 16
+        player.Character.Humanoid.WalkSpeed = speedActive and (16 * 1.4) or 16
     end
 end)
 
