@@ -7,15 +7,12 @@ local player = Players.LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
 
 -- 1. LIMPIEZA
-if pGui:FindFirstChild("MasterHub_Final") then
-	pGui.MasterHub_Final:Destroy()
-end
+if pGui:FindFirstChild("MasterHub_Final") then pGui.MasterHub_Final:Destroy() end
 
--- 2. CREACIÓN DEL HUB
+-- 2. HUB PRINCIPAL
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MasterHub_Final"
-screenGui.ResetOnSpawn = false  
-screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
 screenGui.Parent = pGui
 
 local mainFrame = Instance.new("Frame")
@@ -32,61 +29,41 @@ layout.Padding = UDim.new(0, 10)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
 
--- 3. VARIABLES DE ESTADO
-local killerActive = false
-local survivorActive = false
-local speedActive = false
-
--- 4. FUNCIÓN PARA ACTUALIZAR VISUALES (FORZADO)
-local function updateVisuals()
-	-- Botón Killer
-	_G.killerBtn.Text = killerActive and "Killer: On" or "Esp Killer"
-	_G.killerBtn.BackgroundColor3 = killerActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+-- 3. BOTONES Y SUS ESTADOS (Usando BoolValues para forzar actualización)
+local function createFeature(name, defaultText, offColor, onText)
+	local state = Instance.new("BoolValue")
+	state.Name = name .. "State"
+	state.Value = false
+	state.Parent = mainFrame
 	
-	-- Botón Survivor
-	_G.survivorBtn.Text = survivorActive and "Survivor: On" or "Esp Survivor"
-	_G.survivorBtn.BackgroundColor3 = survivorActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0.85, 0, 0, 35)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 13
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = defaultText
+	btn.BackgroundColor3 = offColor
+	btn.Parent = mainFrame
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 	
-	-- Botón Speed
-	_G.speedBtn.Text = speedActive and "Speed: On" or "Speed"
-	_G.speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
+	-- Vinculamos el cambio de valor al cambio de texto/color
+	state.Changed:Connect(function(val)
+		btn.Text = val and onText or defaultText
+		btn.BackgroundColor3 = val and Color3.fromRGB(50, 200, 50) or offColor
+	end)
+	
+	btn.MouseButton1Down:Connect(function()
+		state.Value = not state.Value
+	end)
+	
+	return state
 end
 
--- 5. CREACIÓN DE BOTONES
-local function createButton(text)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0.85, 0, 0, 35)
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 13
-	b.TextColor3 = Color3.new(1, 1, 1)
-	b.Parent = mainFrame
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-	return b
-end
+local killerState = createFeature("Killer", "Esp Killer", Color3.fromRGB(200, 50, 50), "Killer: On")
+local survivorState = createFeature("Survivor", "Esp Survivor", Color3.fromRGB(50, 150, 200), "Survivor: On")
+local speedState = createFeature("Speed", "Speed", Color3.fromRGB(120, 120, 120), "Speed: On")
 
-_G.killerBtn = createButton("Esp Killer")
-_G.survivorBtn = createButton("Esp Survivor")
-_G.speedBtn = createButton("Speed")
-
-updateVisuals() -- Estado inicial
-
--- 6. EVENTOS DE CLICK
-_G.killerBtn.MouseButton1Click:Connect(function()
-	killerActive = not killerActive
-	updateVisuals()
-end)
-
-_G.survivorBtn.MouseButton1Click:Connect(function()
-	survivorActive = not survivorActive
-	updateVisuals()
-end)
-
-_G.speedBtn.MouseButton1Click:Connect(function()
-	speedActive = not speedActive
-	updateVisuals()
-end)
-
--- 7. LÓGICA DE JUEGO (ESP Y SPEED)
+-- 4. LÓGICA DE JUEGO (ESP Y SPEED)
 RunService.RenderStepped:Connect(function()
 	-- ESP
 	for _, p in pairs(Players:GetPlayers()) do
@@ -96,8 +73,8 @@ RunService.RenderStepped:Connect(function()
 			local old = char:FindFirstChild("ESPMark")
 			local color = nil
 			if p.Team then
-				if killerActive and p.Team.Name == "Killer" then color = Color3.fromRGB(255,0,0)
-				elseif survivorActive and p.Team.Name == "Survivor" then color = Color3.fromRGB(0,255,255) end
+				if killerState.Value and p.Team.Name == "Killer" then color = Color3.fromRGB(255,0,0)
+				elseif survivorState.Value and p.Team.Name == "Survivor" then color = Color3.fromRGB(0,255,255) end
 			end
 			if color then
 				if not old then
@@ -111,11 +88,11 @@ RunService.RenderStepped:Connect(function()
 	
 	-- Speed
 	if player.Character and player.Character:FindFirstChild("Humanoid") then
-		player.Character.Humanoid.WalkSpeed = speedActive and 19.2 or 16
+		player.Character.Humanoid.WalkSpeed = speedState.Value and 19.2 or 16
 	end
 end)
 
--- 8. MOVIMIENTO (DRAG)
+-- 5. MOVIMIENTO (DRAG)
 local dragging, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
