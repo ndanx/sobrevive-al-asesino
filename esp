@@ -1,142 +1,104 @@
---// Servicios
-local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local Teams = game:GetService("Teams")
-local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
+local screenGui = script.Parent
+local mainFrame = screenGui:WaitForChild("Frame")
+local espButton = mainFrame:WaitForChild("ESPButton")
 
---// ESP
-local espEnabled = false
-local espBox
+-- CONFIGURACIÓN DE DISEÑO (UI)
+mainFrame.Size = UDim2.new(0, 200, 0, 120)
+mainFrame.Position = UDim2.new(0.5, -100, 0.5, -60)
+mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.BackgroundTransparency = 0.2 -- Efecto opacado
+mainFrame.BorderSizePixel = 0
 
---// ScreenGui
-local gui = Instance.new("ScreenGui")
-gui.Name = "ModernESP"
-gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-gui.Parent = player:WaitForChild("PlayerGui")
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 15)
+corner.Parent = mainFrame
 
---// Frame principal
-local main = Instance.new("Frame")
-main.Parent = gui
-main.Size = UDim2.fromOffset(220, 120)
-main.Position = UDim2.fromScale(0.5, 0.5)
-main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-main.BackgroundTransparency = 0.15
-main.BorderSizePixel = 0
-main.Active = true
-main.ZIndex = 10
+espButton.Size = UDim2.new(0.8, 0, 0, 40)
+espButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+espButton.Text = "Esp Killer"
+espButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Rojo inicial
+espButton.TextColor3 = Color3.new(1, 1, 1)
+espButton.Font = Enum.Font.GothamBold
+espButton.TextSize = 14
 
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 20)
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = espButton
 
---// Título
-local title = Instance.new("TextLabel")
-title.Parent = main
-title.Size = UDim2.new(1, -20, 0, 30)
-title.Position = UDim2.fromOffset(10, 8)
-title.Text = "ESP HUB"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.TextColor3 = Color3.fromRGB(20, 20, 20)
-title.BackgroundTransparency = 1
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 11
+--- 1. FUNCIÓN PARA MOVER EL HUB (PC y Celular)
+local dragging, dragInput, dragStart, startPos
 
---// Botón
-local button = Instance.new("TextButton")
-button.Parent = main
-button.Size = UDim2.new(1, -40, 0, 45)
-button.Position = UDim2.fromOffset(20, 55)
-button.Text = "ESP Killer"
-button.Font = Enum.Font.GothamBold
-button.TextSize = 14
-button.TextColor3 = Color3.fromRGB(0, 0, 0)
-button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-button.BorderSizePixel = 0
-button.AutoButtonColor = true
-button.ZIndex = 11
-
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 14)
-
---// DRAG PC + MÓVIL (GARANTIZADO)
-do
-	local dragging = false
-	local dragStart
-	local startPos
-
-	main.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true
-			dragStart = input.Position
-			startPos = main.Position
-		end
-	end)
-
-	UIS.InputEnded:Connect(function()
-		dragging = false
-	end)
-
-	UIS.InputChanged:Connect(function(input)
-		if dragging then
-			local delta = input.Position - dragStart
-			main.Position = UDim2.new(
-				startPos.X.Scale,
-				startPos.X.Offset + delta.X,
-				startPos.Y.Scale,
-				startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
+local function update(input)
+	local delta = input.Position - dragStart
+	mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
---// Obtener Killer
-local function getKiller()
-	local team = Teams:FindFirstChild("Killer")
-	if not team then return end
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
 
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Team == team and plr.Character then
-			return plr.Character
-		end
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if dragging and dragInput then update(dragInput) end
+end)
+
+--- 2. LÓGICA DEL ESP KILLER
+local espActive = false
+local highlights = {}
+
+local function createESP(targetPlayer)
+	if targetPlayer.Character and not targetPlayer.Character:FindFirstChild("KillerESP") then
+		local highlight = Instance.new("BoxHandleAdornment")
+		highlight.Name = "KillerESP"
+		highlight.Size = targetPlayer.Character:GetExtentsSize() + Vector3.new(0.1, 0.1, 0.1)
+		highlight.AlwaysOnTop = true
+		highlight.ZIndex = 5
+		highlight.Transparency = 0.5
+		highlight.Color3 = Color3.fromRGB(255, 0, 0) -- Rojo transparente
+		highlight.Adornee = targetPlayer.Character
+		highlight.Parent = targetPlayer.Character
+		table.insert(highlights, highlight)
 	end
 end
 
---// Toggle ESP
-local function toggleESP()
-	espEnabled = not espEnabled
-
-	button.BackgroundColor3 = espEnabled
-		and Color3.fromRGB(60, 200, 80)
-		or Color3.fromRGB(200, 50, 50)
-
-	if espBox then
-		espBox:Destroy()
-		espBox = nil
+local function clearESP()
+	for _, v in pairs(workspace:GetDescendants()) do
+		if v.Name == "KillerESP" then v:Destroy() end
 	end
+	highlights = {}
+end
 
-	if not espEnabled then return end
-
-	task.spawn(function()
-		while espEnabled do
-			local char = getKiller()
-			if char then
-				local hrp = char:FindFirstChild("HumanoidRootPart")
-				if hrp and not espBox then
-					espBox = Instance.new("BoxHandleAdornment")
-					espBox.Adornee = hrp
-					espBox.Size = Vector3.new(4, 6, 4)
-					espBox.Color3 = Color3.fromRGB(255, 0, 0)
-					espBox.Transparency = 0.5
-					espBox.AlwaysOnTop = true
-					espBox.ZIndex = 20
-					espBox.Parent = hrp
-				end
+espButton.MouseButton1Click:Connect(function()
+	espActive = not espActive
+	
+	if espActive then
+		espButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Verde
+		-- Buscar al Killer
+		for _, p in pairs(Players:GetPlayers()) do
+			if p.Team == Teams:FindFirstChild("Killer") then
+				createESP(p)
 			end
-			task.wait(0.3)
 		end
-	end)
-end
-
-button.MouseButton1Click:Connect(toggleESP)
+	else
+		espButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Rojo
+		clearESP()
+	end
+end)
