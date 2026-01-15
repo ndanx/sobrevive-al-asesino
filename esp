@@ -6,12 +6,12 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
 
--- 1. LIMPIEZA
+-- 1. LIMPIEZA DE INTERFACES PREVIAS
 if pGui:FindFirstChild("MasterHub_Final") then
 	pGui.MasterHub_Final:Destroy()
 end
 
--- 2. CREACIÓN DEL HUB
+-- 2. CREACIÓN DEL HUB (Inmortal y Moderno)
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MasterHub_Final"
 screenGui.ResetOnSpawn = false  
@@ -36,10 +36,11 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- 3. CREACIÓN DE BOTONES
-local function createBtn(name, defaultText)
+-- 3. FUNCIÓN PARA CREAR BOTONES
+local function createBtn(name, defaultText, order)
 	local btn = Instance.new("TextButton")
 	btn.Name = name
+	btn.LayoutOrder = order
 	btn.Size = UDim2.new(0.85, 0, 0, 35)
 	btn.Font = Enum.Font.GothamBold
 	btn.Text = defaultText
@@ -51,16 +52,16 @@ local function createBtn(name, defaultText)
 	return btn
 end
 
-local killerBtn = createBtn("1_Killer", "Esp Killer")
+local killerBtn = createBtn("1_Killer", "Esp Killer", 1)
 killerBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 
-local survivorBtn = createBtn("2_Survivor", "Esp Survivor")
+local survivorBtn = createBtn("2_Survivor", "Esp Survivor", 2)
 survivorBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
 
-local speedBtn = createBtn("3_Speed", "Speed")
+local speedBtn = createBtn("3_Speed", "Speed", 3)
 speedBtn.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
 
--- 4. MOVIMIENTO (DRAG)
+-- 4. SISTEMA DE MOVIMIENTO (PC Y MÓVIL)
 local dragging, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -83,16 +84,13 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- 5. VARIABLES DE ESTADO Y LÓGICA
-local states = {
-	killer = false,
-	survivor = false,
-	speed = false
-}
+-- 5. LÓGICA DE FUNCIONES
+local killerEsp = false
+local survivorEsp = false
+local speedActive = false
 
--- Bucle de Funciones
 RunService.RenderStepped:Connect(function()
-	-- ESP
+	-- Lógica ESP
 	for _, p in pairs(Players:GetPlayers()) do
 		if p == player then continue end
 		local char = p.Character
@@ -100,40 +98,48 @@ RunService.RenderStepped:Connect(function()
 			local old = char:FindFirstChild("ESPMark")
 			local color = nil
 			if p.Team then
-				if states.killer and p.Team.Name == "Killer" then color = Color3.fromRGB(255, 0, 0)
-				elseif states.survivor and p.Team.Name == "Survivor" then color = Color3.fromRGB(0, 255, 255) end
+				if killerEsp and p.Team.Name == "Killer" then 
+					color = Color3.fromRGB(255, 0, 0)
+				elseif survivorEsp and p.Team.Name == "Survivor" then 
+					color = Color3.fromRGB(0, 255, 255) 
+				end
 			end
 			if color then
 				if not old then
 					local h = Instance.new("Highlight", char)
 					h.Name = "ESPMark"
 					h.FillColor = color
-				else old.FillColor = color end
-			elseif old then old:Destroy() end
+					h.OutlineColor = Color3.new(1, 1, 1)
+				else 
+					old.FillColor = color 
+				end
+			elseif old then 
+				old:Destroy() 
+			end
 		end
 	end
 	
-	-- Speed
+	-- Lógica Speed (Fuerza la velocidad cada frame)
 	if player.Character and player.Character:FindFirstChild("Humanoid") then
-		player.Character.Humanoid.WalkSpeed = states.speed and (16 * 1.2) or 16
+		player.Character.Humanoid.WalkSpeed = speedActive and (16 * 1.2) or 16
 	end
 end)
 
--- EVENTOS DE CLICK
+-- 6. EVENTOS DE CLICK (Cambio de Texto y Color)
 killerBtn.MouseButton1Down:Connect(function()
-	states.killer = not states.killer
-	killerBtn.Text = states.killer and "Killer: On" or "Esp Killer"
-	killerBtn.BackgroundColor3 = states.killer and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+	killerEsp = not killerEsp
+	killerBtn.Text = killerEsp and "Killer: On" or "Esp Killer"
+	killerBtn.BackgroundColor3 = killerEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
 survivorBtn.MouseButton1Down:Connect(function()
-	states.survivor = not states.survivor
-	survivorBtn.Text = states.survivor and "Survivor: On" or "Esp Survivor"
-	survivorBtn.BackgroundColor3 = states.survivor and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
+	survivorEsp = not survivorEsp
+	survivorBtn.Text = survivorEsp and "Survivor: On" or "Esp Survivor"
+	survivorBtn.BackgroundColor3 = survivorEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
 end)
 
 speedBtn.MouseButton1Down:Connect(function()
-	states.speed = not states.speed
-	speedBtn.BackgroundColor3 = states.speed and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
-    
+	speedActive = not speedActive
+	speedBtn.Text = speedActive and "Speed: On" or "Speed"
+	speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
 end)
