@@ -6,12 +6,12 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
 
--- 1. LIMPIEZA DE INTERFACES PREVIAS
+-- 1. LIMPIEZA TOTAL
 if pGui:FindFirstChild("MasterHub_Final") then
 	pGui.MasterHub_Final:Destroy()
 end
 
--- 2. CREACIÓN DEL HUB (Inmortal y Moderno)
+-- 2. CREACIÓN DEL HUB
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MasterHub_Final"
 screenGui.ResetOnSpawn = false  
@@ -36,32 +36,29 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- 3. FUNCIÓN PARA CREAR BOTONES
-local function createBtn(name, defaultText, order)
-	local btn = Instance.new("TextButton")
-	btn.Name = name
-	btn.LayoutOrder = order
-	btn.Size = UDim2.new(0.85, 0, 0, 35)
-	btn.Font = Enum.Font.GothamBold
-	btn.Text = defaultText
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.TextSize = 13
-	btn.AutoButtonColor = true
-	btn.Parent = mainFrame
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-	return btn
-end
+-- 3. CREACIÓN DE BOTONES
+local killerBtn = Instance.new("TextButton", mainFrame)
+killerBtn.Size = UDim2.new(0.85, 0, 0, 35)
+killerBtn.Font = Enum.Font.GothamBold
+killerBtn.TextColor3 = Color3.new(1, 1, 1)
+killerBtn.TextSize = 13
+Instance.new("UICorner", killerBtn).CornerRadius = UDim.new(0, 8)
 
-local killerBtn = createBtn("1_Killer", "Esp Killer", 1)
-killerBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+local survivorBtn = Instance.new("TextButton", mainFrame)
+survivorBtn.Size = UDim2.new(0.85, 0, 0, 35)
+survivorBtn.Font = Enum.Font.GothamBold
+survivorBtn.TextColor3 = Color3.new(1, 1, 1)
+survivorBtn.TextSize = 13
+Instance.new("UICorner", survivorBtn).CornerRadius = UDim.new(0, 8)
 
-local survivorBtn = createBtn("2_Survivor", "Esp Survivor", 2)
-survivorBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+local speedBtn = Instance.new("TextButton", mainFrame)
+speedBtn.Size = UDim2.new(0.85, 0, 0, 35)
+speedBtn.Font = Enum.Font.GothamBold
+speedBtn.TextColor3 = Color3.new(1, 1, 1)
+speedBtn.TextSize = 13
+Instance.new("UICorner", speedBtn).CornerRadius = UDim.new(0, 8)
 
-local speedBtn = createBtn("3_Speed", "Speed", 3)
-speedBtn.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
-
--- 4. SISTEMA DE MOVIMIENTO (PC Y MÓVIL)
+-- 4. MOVIMIENTO (DRAG)
 local dragging, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -79,18 +76,26 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
+	dragging = false
 end)
 
--- 5. LÓGICA DE FUNCIONES
+-- 5. LÓGICA Y ACTUALIZACIÓN CONSTANTE
 local killerEsp = false
 local survivorEsp = false
 local speedActive = false
 
 RunService.RenderStepped:Connect(function()
-	-- Lógica ESP
+	-- ACTUALIZAR BOTONES (Texto y Color)
+	killerBtn.Text = killerEsp and "Killer: On" or "Esp Killer"
+	killerBtn.BackgroundColor3 = killerEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+	
+	survivorBtn.Text = survivorEsp and "Survivor: On" or "Esp Survivor"
+	survivorBtn.BackgroundColor3 = survivorEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
+	
+	speedBtn.Text = speedActive and "Speed: On" or "Speed"
+	speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
+
+	-- LÓGICA ESP
 	for _, p in pairs(Players:GetPlayers()) do
 		if p == player then continue end
 		local char = p.Character
@@ -98,48 +103,26 @@ RunService.RenderStepped:Connect(function()
 			local old = char:FindFirstChild("ESPMark")
 			local color = nil
 			if p.Team then
-				if killerEsp and p.Team.Name == "Killer" then 
-					color = Color3.fromRGB(255, 0, 0)
-				elseif survivorEsp and p.Team.Name == "Survivor" then 
-					color = Color3.fromRGB(0, 255, 255) 
-				end
+				if killerEsp and p.Team.Name == "Killer" then color = Color3.fromRGB(255, 0, 0)
+				elseif survivorEsp and p.Team.Name == "Survivor" then color = Color3.fromRGB(0, 255, 255) end
 			end
 			if color then
 				if not old then
 					local h = Instance.new("Highlight", char)
 					h.Name = "ESPMark"
 					h.FillColor = color
-					h.OutlineColor = Color3.new(1, 1, 1)
-				else 
-					old.FillColor = color 
-				end
-			elseif old then 
-				old:Destroy() 
-			end
+				else old.FillColor = color end
+			elseif old then old:Destroy() end
 		end
 	end
 	
-	-- Lógica Speed (Fuerza la velocidad cada frame)
+	-- LÓGICA SPEED
 	if player.Character and player.Character:FindFirstChild("Humanoid") then
 		player.Character.Humanoid.WalkSpeed = speedActive and (16 * 1.2) or 16
 	end
 end)
 
--- 6. EVENTOS DE CLICK (Cambio de Texto y Color)
-killerBtn.MouseButton1Down:Connect(function()
-	killerEsp = not killerEsp
-	killerBtn.Text = killerEsp and "Killer: On" or "Esp Killer"
-	killerBtn.BackgroundColor3 = killerEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-end)
-
-survivorBtn.MouseButton1Down:Connect(function()
-	survivorEsp = not survivorEsp
-	survivorBtn.Text = survivorEsp and "Survivor: On" or "Esp Survivor"
-	survivorBtn.BackgroundColor3 = survivorEsp and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 150, 200)
-end)
-
-speedBtn.MouseButton1Down:Connect(function()
-	speedActive = not speedActive
-	speedBtn.Text = speedActive and "Speed: On" or "Speed"
-	speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(120, 120, 120)
-end)
+-- 6. EVENTOS DE ACTIVACIÓN
+killerBtn.Activated:Connect(function() killerEsp = not killerEsp end)
+survivorBtn.Activated:Connect(function() survivorEsp = not survivorEsp end)
+speedBtn.Activated:Connect(function() speedActive = not speedActive end)
