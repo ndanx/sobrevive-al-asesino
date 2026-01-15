@@ -1,0 +1,143 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local pGui = player:WaitForChild("PlayerGui")
+
+-- 1. LIMPIEZA
+if pGui:FindFirstChild("MasterHub_Final") then pGui.MasterHub_Final:Destroy() end
+
+-- 2. HUB PRINCIPAL
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MasterHub_Final"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = pGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 180, 0, 260)
+mainFrame.Position = UDim2.new(0.5, -90, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Fondo del HUB oscuro
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.Active = true
+mainFrame.Parent = screenGui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+local layout = Instance.new("UIListLayout", mainFrame)
+layout.Padding = UDim.new(0, 8)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+-- 3. VARIABLES DE ESTADO
+local states = {
+    killer = false,
+    survivor = false,
+    speed = false,
+    infJump = false,
+    noclip = false
+}
+
+-- 4. FUNCIÓN PARA CREAR BOTONES (GRIS Y TEXTO BLANCO)
+local function createBtn(text, order)
+    local btn = Instance.new("TextButton")
+    btn.LayoutOrder = order
+    btn.Size = UDim2.new(0.85, 0, 0, 35)
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1) -- Texto Blanco siempre
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60) -- Gris para todos
+    btn.TextSize = 13
+    btn.Parent = mainFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local kBtn = createBtn("Esp Killer", 1)
+local sBtn = createBtn("Esp Survivor", 2)
+local spBtn = createBtn("Speed", 3)
+local jBtn = createBtn("Infinite Jump", 4)
+local nBtn = createBtn("Noclip", 5)
+
+-- 5. LÓGICA DE ACTUALIZACIÓN VISUAL
+local function toggleVisual(btn, state, onText, offText)
+    -- El fondo se mantiene gris, solo cambia el texto para indicar el estado
+    btn.Text = state and onText or offText
+    btn.BackgroundTransparency = state and 0 or 0.4 -- Un pequeño cambio visual al activar
+end
+
+-- EVENTOS DE CLICK
+kBtn.MouseButton1Click:Connect(function()
+    states.killer = not states.killer
+    toggleVisual(kBtn, states.killer, "Killer: On", "Esp Killer")
+end)
+
+sBtn.MouseButton1Click:Connect(function()
+    states.survivor = not states.survivor
+    toggleVisual(sBtn, states.survivor, "Survivor: On", "Esp Survivor")
+end)
+
+spBtn.MouseButton1Click:Connect(function()
+    states.speed = not states.speed
+    toggleVisual(spBtn, states.speed, "Speed: On", "Speed")
+end)
+
+jBtn.MouseButton1Click:Connect(function()
+    states.infJump = not states.infJump
+    toggleVisual(jBtn, states.infJump, "InfJump: On", "Infinite Jump")
+end)
+
+nBtn.MouseButton1Click:Connect(function()
+    states.noclip = not states.noclip
+    toggleVisual(nBtn, states.noclip, "Noclip: On", "Noclip")
+end)
+
+-- 6. LÓGICA DE FUNCIONAMIENTO
+UserInputService.JumpRequest:Connect(function()
+    if states.infJump and player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid:ChangeState("Jumping")
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if states.noclip and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+    
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = states.speed and 25 or 16
+    end
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Team then
+            local old = p.Character:FindFirstChild("ESPMark")
+            local color = nil
+            if states.killer and p.Team.Name == "Killer" then color = Color3.new(1,0,0)
+            elseif states.survivor and p.Team.Name == "Survivor" then color = Color3.new(0,1,1) end
+            
+            if color then
+                if not old then
+                    local h = Instance.new("Highlight", p.Character)
+                    h.Name = "ESPMark"
+                    h.FillColor = color
+                else old.FillColor = color end
+            elseif old then old:Destroy() end
+        end
+    end
+end)
+
+-- 7. DRAG (MOVIMIENTO)
+local dragging, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true dragStart = input.Position startPos = mainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) dragging = false end)
