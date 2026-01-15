@@ -2,7 +2,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 -- 1. CONFIGURACIÓN DE LA VENTANA
 local Window = Fluent:CreateWindow({
-    Title = "MASTER HUB",
+    Title = "SOBREVIVE AL ASESINO",
     SubTitle = "Premium Edition",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
@@ -123,7 +123,7 @@ end)
 
 Window:SelectTab(1)
 Fluent:Notify({
-    Title = "Master Hub",
+    Title = "SOBREVIVE AL ASESINO",
     Content = "Cargado correctamente. Usa Right Control para minimizar.",
     Duration = 5
 })
