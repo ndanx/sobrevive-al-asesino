@@ -1,6 +1,8 @@
 --// Servicios
 local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
 local UIS = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 
 --// Variables
@@ -24,21 +26,7 @@ main.BorderSizePixel = 0
 main.Active = true
 
 --// Bordes redondos
-local corner = Instance.new("UICorner", main)
-corner.CornerRadius = UDim.new(0, 20)
-
---// Sombra
-local shadow = Instance.new("ImageLabel", main)
-shadow.Size = UDim2.fromScale(1.2, 1.2)
-shadow.Position = UDim2.fromScale(-0.1, -0.1)
-shadow.Image = "rbxassetid://1316045217"
-shadow.ImageTransparency = 0.7
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.BackgroundTransparency = 1
-shadow.ZIndex = 0
-
-main.ZIndex = 1
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 20)
 
 --// Título
 local title = Instance.new("TextLabel", main)
@@ -47,7 +35,7 @@ title.Position = UDim2.fromOffset(10, 10)
 title.Text = "ESP HUB"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
-title.TextColor3 = Color3.fromRGB(30, 30, 30)
+title.TextColor3 = Color3.fromRGB(20, 20, 20)
 title.BackgroundTransparency = 1
 title.TextXAlignment = Left
 
@@ -55,15 +43,13 @@ title.TextXAlignment = Left
 local button = Instance.new("TextButton", main)
 button.Size = UDim2.new(1, -40, 0, 45)
 button.Position = UDim2.fromOffset(20, 55)
-button.Text = "Esp Killer"
+button.Text = "ESP Killer"
 button.Font = Enum.Font.GothamBold
 button.TextSize = 14
-button.TextColor3 = Color3.new(1, 1, 1)
+button.TextColor3 = Color3.fromRGB(0, 0, 0) -- NEGRO
 button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 button.BorderSizePixel = 0
-
-local btnCorner = Instance.new("UICorner", button)
-btnCorner.CornerRadius = UDim.new(0, 14)
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 14)
 
 --// DRAG PC + MÓVIL
 do
@@ -104,7 +90,20 @@ do
 	end)
 end
 
---// FUNCION ESP
+--// Obtener jugador Killer
+local function getKillerCharacter()
+	local killerTeam = Teams:FindFirstChild("Killer")
+	if not killerTeam then return nil end
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr.Team == killerTeam and plr.Character then
+			return plr.Character
+		end
+	end
+	return nil
+end
+
+--// ESP
 local function toggleESP()
 	espEnabled = not espEnabled
 
@@ -112,34 +111,32 @@ local function toggleESP()
 		and Color3.fromRGB(60, 200, 80) -- Verde
 		or Color3.fromRGB(200, 50, 50) -- Rojo
 
-	if not espEnabled then
-		if espBox then
-			espBox:Destroy()
-			espBox = nil
-		end
-		return
+	if espBox then
+		espBox:Destroy()
+		espBox = nil
 	end
 
-	-- Buscar Killer
-	local teamsFolder = workspace:FindFirstChild("Teams")
-	if not teamsFolder then return end
+	if not espEnabled then return end
 
-	local killer = teamsFolder:FindFirstChild("Killer")
-	if not killer or not killer:IsA("Model") then return end
-
-	local hrp = killer:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	-- Crear hitbox visual
-	espBox = Instance.new("BoxHandleAdornment")
-	espBox.Adornee = hrp
-	espBox.Size = Vector3.new(4, 6, 4)
-	espBox.Color3 = Color3.fromRGB(255, 0, 0)
-	espBox.Transparency = 0.5
-	espBox.AlwaysOnTop = true
-	espBox.ZIndex = 10
-	espBox.Parent = hrp
+	task.spawn(function()
+		while espEnabled do
+			local char = getKillerCharacter()
+			if char then
+				local hrp = char:FindFirstChild("HumanoidRootPart")
+				if hrp and not espBox then
+					espBox = Instance.new("BoxHandleAdornment")
+					espBox.Adornee = hrp
+					espBox.Size = Vector3.new(4, 6, 4)
+					espBox.Color3 = Color3.fromRGB(255, 0, 0)
+					espBox.Transparency = 0.5
+					espBox.AlwaysOnTop = true
+					espBox.ZIndex = 10
+					espBox.Parent = hrp
+				end
+			end
+			task.wait(0.5)
+		end
+	end)
 end
 
---// Click
 button.MouseButton1Click:Connect(toggleESP)
