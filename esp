@@ -1,63 +1,54 @@
+-- LocalScript en StarterPlayerScripts
 local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+-- Esperar a que el jugador y su interfaz existan realmente
 local player = Players.LocalPlayer
-local pGui = player:WaitForChild("PlayerGui")
+local pGui = player:WaitForChild("PlayerGui", 10)
 
--- 1. CREACIÓN DEL HUB MODERNO
+if not pGui then return end -- Seguridad por si falla la carga
+
+-- 1. CREACIÓN DINÁMICA DEL HUB (Garantiza que aparezca)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ModernKillerHub"
-screenGui.ResetOnSpawn = false
+screenGui.Name = "KillerHub_V3"
+screenGui.IgnoreGuiInset = true -- Para que sea movible en toda la pantalla
 screenGui.Parent = pGui
 
 local mainFrame = Instance.new("Frame")
+mainFrame.Name = "Container"
 mainFrame.Size = UDim2.new(0, 180, 0, 100)
 mainFrame.Position = UDim2.new(0.5, -90, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-mainFrame.BackgroundTransparency = 0.2
+mainFrame.BackgroundTransparency = 0.3
 mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
 mainFrame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 15)
+corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = mainFrame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "HUB"
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextColor3 = Color3.fromRGB(50, 50, 50)
-title.TextSize = 14
-title.Parent = mainFrame
 
 local espButton = Instance.new("TextButton")
 espButton.Size = UDim2.new(0.8, 0, 0, 40)
-espButton.Position = UDim2.new(0.1, 0, 0.45, 0)
-espButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80) -- Rojo inicial
+espButton.Position = UDim2.new(0.1, 0, 0.3, 0)
+espButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Rojo apagado
 espButton.Text = "Esp Killer"
 espButton.Font = Enum.Font.GothamBold
 espButton.TextColor3 = Color3.new(1, 1, 1)
 espButton.TextSize = 14
 espButton.Parent = mainFrame
 
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 8)
-btnCorner.Parent = espButton
+Instance.new("UICorner", espButton).CornerRadius = UDim.new(0, 8)
 
--- 2. FUNCIÓN PARA MOVER EL HUB (PC & Móvil)
+-- 2. SISTEMA DE MOVIMIENTO (DRAG)
 local dragging, dragInput, dragStart, startPos
-
 mainFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
 		startPos = mainFrame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
 	end
 end)
 
@@ -68,32 +59,36 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 3. LÓGICA DEL ESP KILLER
-local espEnabled = false
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
 
-local function updateESP()
-	-- Limpiar resaltados viejos
+-- 3. LÓGICA ESP KILLER
+local espEnabled = false
+local killerTeam = Teams:WaitForChild("Killer", 10)
+
+local function clearHighlights()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p.Character then
-			local old = p.Character:FindFirstChild("KillerHighlight")
-			if old then old:Destroy() end
+			local h = p.Character:FindFirstChild("KillerMark")
+			if h then h:Destroy() end
 		end
 	end
+end
 
-	if not espEnabled then return end
-
-	-- Buscar al equipo Killer
-	local killerTeam = Teams:FindFirstChild("Killer")
-	if killerTeam then
-		for _, p in pairs(Players:GetPlayers()) do
-			if p.Team == killerTeam and p.Character and p ~= player then
-				local char = p.Character
+local function applyESP()
+	if not espEnabled or not killerTeam then return end
+	for _, p in pairs(Players:GetPlayers()) do
+		if p.Team == killerTeam and p.Character and p ~= player then
+			if not p.Character:FindFirstChild("KillerMark") then
 				local highlight = Instance.new("Highlight")
-				highlight.Name = "KillerHighlight"
-				highlight.FillColor = Color3.new(1, 0, 0) -- Rojo
+				highlight.Name = "KillerMark"
+				highlight.FillColor = Color3.new(1, 0, 0)
 				highlight.FillTransparency = 0.5
 				highlight.OutlineColor = Color3.new(1, 1, 1)
-				highlight.Parent = char
+				highlight.Parent = p.Character
 			end
 		end
 	end
@@ -102,18 +97,20 @@ end
 espButton.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
 	if espEnabled then
-		espButton.BackgroundColor3 = Color3.fromRGB(80, 255, 80) -- Verde
-		espButton.Text = "ESP: ON"
+		espButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Verde
+		espButton.Text = "ESP ACTIVO"
 	else
-		espButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80) -- Rojo
+		espButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Rojo
 		espButton.Text = "Esp Killer"
+		clearHighlights()
 	end
-	updateESP()
 end)
 
--- Bucle para actualizar si el Killer muere o cambia de equipo
-RunService.RenderStepped:Connect(function()
+-- Bucle de refresco (por si el Killer muere o cambia)
+RunService.Heartbeat:Connect(function()
 	if espEnabled then
-		updateESP()
+		applyESP()
+	else
+		clearHighlights()
 	end
 end)
