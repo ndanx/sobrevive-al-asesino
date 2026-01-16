@@ -1,0 +1,139 @@
+
+local Fluent = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+
+-- 1. CONFIGURACIÓN DE LA VENTANA
+local Window = Fluent:CreateWindow({
+    Title = "SURVIVE THE KILLER",
+    SubTitle = "Premium Edition",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark", -- Tema inicial
+    MinimizeKey = Enum.KeyCode.RightControl
+})
+
+-- 2. PESTAÑAS
+local Tabs = {
+    Visuals = Window:AddTab({ Title = "Visuals", Icon = "eye" }),
+    Movement = Window:AddTab({ Title = "Movement", Icon = "user" }), 
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }) 
+}
+
+-- 3. VARIABLES DE CONTROL
+local Options = {
+    KillerESP = false,
+    SurvivorESP = false,
+    Noclip = false,
+    InfJump = false,
+    WalkSpeed = 16
+}
+
+-------------------------------------------------------------------
+-- PESTAÑA SETTINGS (CON SELECTOR DE TEMAS)
+-------------------------------------------------------------------
+
+-- Selector de Temas (Dropdown) como en tu imagen
+local ThemeDropdown = Tabs.Settings:AddDropdown("ThemeDropdown", {
+    Title = "Theme",
+    Description = "Changes the interface theme.",
+    Values = {"Dark", "Darker", "AMOLED", "Light", "Balloon", "SoftCream", "Aqua", "Amethyst", "Rose", "Midnight", "Forest", "Sunset", "Ocean", "Emerald", "Sapphire", "Cloud", "Grape", "Bloody", "Arctic" },
+    Default = "Dark",
+    Callback = function(Value)
+        Fluent:SetTheme(Value)
+    end
+})
+
+Tabs.Settings:AddKeybind("MinimizeKeybind", {
+    Title = "Tecla de Menú",
+    Description = "Cambia la tecla para abrir/cerrar",
+    Default = "RightControl",
+    
+    -- ChangedCallback es el evento que Beta.lua usa para actualizar la tecla
+    ChangedCallback = function(NewKey)
+        Window.MinimizeKey = NewKey -- Actualiza la propiedad interna de la ventana
+    end
+
+Tabs.Settings:AddParagraph({
+    Title = "Controles",
+    Content = "Usa 'Right Control' para minimizar el menú.\nEl selector superior cambia el aspecto visual al instante."
+})
+
+-------------------------------------------------------------------
+-- PESTAÑAS DE FUNCIONES (VISUALS & MOVEMENT)
+-------------------------------------------------------------------
+
+-- VISUALS
+Tabs.Visuals:AddToggle("KillT", {Title = "ESP Killer"}):OnChanged(function(v) Options.KillerESP = v end)
+Tabs.Visuals:AddToggle("SurvT", {Title = "ESP Survivor"}):OnChanged(function(v) Options.SurvivorESP = v end)
+
+-- MOVEMENT
+Tabs.Movement:AddSlider("SpeedSlider", {
+    Title = "WalkSpeed Changer",
+    Default = 16, Min = 16, Max = 150, Rounding = 1,
+    Callback = function(v) Options.WalkSpeed = v end
+})
+Tabs.Movement:AddToggle("JumpT", {Title = "Infinite Jump"}):OnChanged(function(v) Options.InfJump = v end)
+Tabs.Movement:AddToggle("NocT", {Title = "Noclip"}):OnChanged(function(v) Options.Noclip = v end)
+
+-------------------------------------------------------------------
+-- LÓGICA DE MINIMIZADO
+-------------------------------------------------------------------
+local UIS = game:GetService("UserInputService")
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    -- Verificamos que no sea una tecla procesada por el juego (como el chat)
+    if not gameProcessed and input.KeyCode == Window.MinimizeKey then
+        -- Según el código de Beta.lua, llamar directamente a Minimize 
+        -- actúa como un interruptor si se maneja desde el Root
+        if Window.Minimized then
+            Window:Maximize() -- Vuelve al tamaño original (580, 460)
+        else
+            Window:Minimize() -- Se oculta
+        end
+    end
+end)
+
+-------------------------------------------------------------------
+-- LÓGICA DE BUCLE (Speed, ESP, etc.)
+-------------------------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+RunService.Stepped:Connect(function()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = Options.WalkSpeed
+    end
+
+    if Options.Noclip and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Team then
+            local highlight = p.Character:FindFirstChild("ESPHighlight")
+            local color = nil
+            if Options.KillerESP and p.Team.Name == "Killer" then color = Color3.fromRGB(255,0,0)
+            elseif Options.SurvivorESP and p.Team.Name == "Survivor" then color = Color3.fromRGB(0,255,255) end
+            
+            if color then
+                if not highlight then
+                    highlight = Instance.new("Highlight", p.Character)
+                    highlight.Name = "ESPHighlight"
+                end
+                highlight.FillColor = color
+            elseif highlight then highlight:Destroy() end
+        end
+    end
+end)
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if Options.InfJump and player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid:ChangeState("Jumping")
+    end
+end)
+
+Window:SelectTab(1)
+Fluent:Notify({Title = "Survive The Killer", Content = "Cargado con éxito. Temas disponibles en Settings.", Duration = 5})
