@@ -64,10 +64,16 @@ end)
 -------------------------------------------------------------------
 -- PESTAÑA SETTINGS (Info fija)
 -------------------------------------------------------------------
------ Selector de Temas
+----- Selector de Temas (Para corregir el error de tus fotos)
 Tabs.Settings:AddDropdown("ThemeSelector", {
     Title = "Theme",
     Description = "Cambia el color del menú",
+    Values = {"Dark", "Darker", "AMOLED", "Lightose", "Balloon", "SoftCream", "Aqua", "Amethyst", "Rose", "Midnight", "Forest", "Sunset", "Ocean", "Emerald", "Sapphire", "Cloud", "Grape", "Bloody", "Arctic"},
+    Default = "Dark",
+    Callback = function(Value)
+        Fluent:SetTheme()
+    end
+})
 
 Tabs.Settings:AddParagraph({
     Title = "Información del Hub",
