@@ -60,17 +60,18 @@ Tabs.Settings:AddKeybind("MinimizeBind", {
 -- LÓGICA DE MINIMIZADO (WINDOW:MINIMIZE / MAXIMIZE)
 -------------------------------------------------------------------
 local UIS = game:GetService("UserInputService")
+local isMinimized = false -- Nuestra propia variable de control
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
-    -- Evitar que se active si estás en el Chat
     if gameProcessed then return end
 
     if input.KeyCode == Options.MenuKey then
-        -- Verificamos el estado actual para decidir qué método usar
-        if Window.Minimized then
-            Window:Maximize() -- Método sugerido por el dev
+        isMinimized = not isMinimized -- Cambiamos el estado (si era true pasa a false y viceversa)
+        
+        if isMinimized then
+            Window:Minimize() -- Método del dev
         else
-            Window:Minimize() -- Método sugerido por el dev
+            Window:Maximize() -- Método del dev
         end
     end
 end)
