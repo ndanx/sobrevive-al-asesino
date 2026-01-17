@@ -50,7 +50,7 @@ Tabs.Settings:AddKeybind("WindowActionKey", {
     Default = "G", 
     Callback = function()
         -- Verificamos el estado actual usando la propiedad que te dijo el dev
-        if Window.Maximized then
+        if Window.Restored then
             -- Si está maximizada, usamos el método para minimizar correctamente
             Window:Minimize()
         else
