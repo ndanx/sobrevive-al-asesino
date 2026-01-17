@@ -43,6 +43,8 @@ local ThemeDropdown = Tabs.Settings:AddDropdown("ThemeDropdown", {
     end
 })
 
+local WindowState = "Maximized" 
+
 Tabs.Settings:AddKeybind("WindowActionKey", {
     Title = "Keybind",
     Description = "Aquí cambia la keybind para minimizar",
