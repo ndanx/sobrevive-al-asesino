@@ -56,7 +56,7 @@ Tabs.Settings:AddKeybind("WindowActionKey", {
             Window:Minimize()
         else
             -- Si no, usamos el método para maximizar
-            Window:Maximized()
+            Window:Maximize()
         end
     end,
     ChangedCallback = function(NewKey)
