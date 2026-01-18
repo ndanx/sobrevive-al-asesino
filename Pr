@@ -128,7 +128,7 @@ game:GetService("UserInputService").JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------------------------
--- LÓGICA DE AUTO REVIVE CON DISTANCIA DE SEGURIDAD (20 STUDS)
+-- LÓGICA DE AUTO REVIVE SEGURO (SOLO SI EL KILLER ESTÁ A +20 STUDS)
 -------------------------------------------------------------------
 task.spawn(function()
     while true do
@@ -151,24 +151,27 @@ task.spawn(function()
                 -- 2. Analizar sobrevivientes heridos
                 for _, targetPlayer in pairs(game.Players:GetPlayers()) do
                     if targetPlayer ~= lp and targetPlayer.Character then
-                        -- Usamos el atributo "Downed" con D mayúscula
+                        -- Atributo Downed (D mayúscula)
                         local isDowned = targetPlayer:GetAttribute("Downed") == true
                         
                         if isDowned then
                             local tRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
                             if tRoot then
-                                -- 3. Verificar si el Killer está a 20 studs o menos
-                                local shouldTP = false
+                                -- 3. Verificar que el Killer esté LEJOS (Distancia mayor o igual a 20)
+                                local isSafe = false
                                 if killerRoot then
                                     local distance = (tRoot.Position - killerRoot.Position).Magnitude
-                                    -- Si la distancia es menor o igual a 20, se activa
-                                    if distance <= 20 then
-                                        shouldTP = true
+                                    -- SOLO SE ACTIVA SI ESTÁ A 20 O MÁS STUDS
+                                    if distance >= 20 then
+                                        isSafe = true
                                     end
+                                else
+                                    -- Si no hay Killer en la partida o no tiene personaje, es seguro ir
+                                    isSafe = true
                                 end
 
-                                -- 4. Ejecutar TP y Retorno si se cumple la condición
-                                if shouldTP then
+                                -- 4. Ejecutar TP y Retorno solo si es seguro
+                                if isSafe then
                                     local posAntesDeIr = myRoot.CFrame
                                     
                                     repeat
@@ -176,7 +179,7 @@ task.spawn(function()
                                         if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                                             myRoot.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
                                         end
-                                    -- Espera hasta que Downed sea false (revivido)
+                                    -- Se queda pegado hasta que reviva o el Killer se acerque demasiado (opcional)
                                     until targetPlayer:GetAttribute("Downed") == false or not Options.AutoRevive or not targetPlayer.Character
                                     
                                     task.wait(0.1)
