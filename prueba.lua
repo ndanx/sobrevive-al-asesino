@@ -1,6 +1,3 @@
--- Forzamos la carga del juego
-if not game:IsLoaded() then game.Loaded:Wait() end
-
 local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -32,7 +29,7 @@ local Options = {
 }
 
 -------------------------------------------------------------------
--- LÓGICA DE AUTO REVIVE (POR ATRIBUTO 'downed')
+-- LÓGICA DE AUTO REVIVE
 -------------------------------------------------------------------
 task.spawn(function()
     while true do
@@ -131,4 +128,4 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 
 SaveManager:LoadAutoloadConfig()
 Window:SelectTab(1)
-Fluent:Notify({Title = "STK Premium", Content = "Auto Revive Activo (Sin distancia de seguridad)", Duration = 5})
+Fluent:Notify({Title = "STK Premium", Content = "Auto Revive Activo", Duration = 5})
